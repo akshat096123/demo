@@ -1,225 +1,154 @@
-:root {
-    --bg-black: #030708;
-    --accent-primary: #00ff9d;
-    --accent-secondary: #ff3fab;
-    --accent-blue: #00d2ff;
-    --accent-yellow: #f1c40f;
-    --glass-bg: rgba(15, 20, 25, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --text-white: #f8fafc;
-    --text-dim: #94a3b8;
+/**
+ * DUST PARTICLE SYSTEM
+ */
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function initParticles() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    particles = [];
+    for (let i = 0; i < 120; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 0.5,
+            speedX: (Math.random() - 0.5) * 0.5,
+            speedY: (Math.random() - 0.5) * 0.5,
+            opacity: Math.random() * 0.5
+        });
+    }
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        if (p.x > canvas.width) p.x = 0;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.y > canvas.height) p.y = 0;
+        if (p.y < 0) p.y = canvas.height;
+
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    requestAnimationFrame(animateParticles);
 }
 
-body {
-    font-family: 'Outfit', sans-serif;
-    background-color: var(--bg-black);
-    color: var(--text-white);
-    overflow-x: hidden;
-    line-height: 1.6;
+/**
+ * CORE DASHBOARD LOGIC
+ */
+function init() {
+    initParticles();
+    animateParticles();
+    getLocation();
+    initCharts();
+    initHeatmap();
+    initEvMap();
 }
 
-/* Background Particles */
-#particleCanvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    pointer-events: none;
+window.onresize = initParticles;
+
+function getLocation() {
+    const box = document.getElementById('location-box');
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            box.innerHTML = `<i class="fas fa-map-marker-alt"></i> Delhi NCR Hub Active`;
+            updateDashboard(342, "HAZARDOUS");
+        }, () => {
+            box.innerHTML = `<i class="fas fa-map-marker-alt"></i> Delhi Default View`;
+            updateDashboard(342, "HAZARDOUS");
+        });
+    }
 }
 
-/* Navigation Overhaul */
-nav {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: auto;
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(20px);
-    padding: 10px 30px;
-    border-radius: 100px;
-    border: 1px solid var(--glass-border);
-    z-index: 1000;
-    display: flex;
-    gap: 30px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+function updateDashboard(aqi, status) {
+    let current = 0;
+    const counter = setInterval(() => {
+        current += 5;
+        document.getElementById('main-aqi').innerText = current;
+        if(current >= aqi) {
+            clearInterval(counter);
+            document.getElementById('main-aqi').innerText = aqi;
+            document.getElementById('aqi-text').innerText = status;
+        }
+    }, 15);
 }
 
-nav a {
-    color: var(--text-dim);
-    text-decoration: none;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    transition: 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
+function scrollToId(id) {
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-nav a i { font-size: 1.2rem; }
-nav a span { letter-spacing: 1px; }
-
-nav a:hover, nav a.active {
-    color: var(--accent-primary);
-    transform: translateY(-5px);
-    text-shadow: 0 0 15px rgba(0, 255, 157, 0.5);
+function setActive(element) {
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    element.classList.add('active');
 }
 
-/* Sections */
-section {
-    min-height: 100vh;
-    padding: 80px 5% 150px 5%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-width: 1300px;
-    margin: 0 auto;
+function toggleGrap(element) {
+    const content = element.querySelector('.grap-content');
+    const icon = element.querySelector('.fa-chevron-down');
+    const isOpen = content.style.display === "block";
+    content.style.display = isOpen ? "none" : "block";
+    icon.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
 }
 
-.section-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    text-align: center;
-    margin-bottom: 50px;
-    background: linear-gradient(180deg, #fff 0%, #444 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+/**
+ * CHARTS & MAPS
+ */
+function initCharts() {
+    const ctxChart = document.getElementById('pollutantChart').getContext('2d');
+    new Chart(ctxChart, {
+        type: 'doughnut',
+        data: {
+            labels: ['PM 2.5', 'PM 10', 'NO2', 'CO'],
+            datasets: [{
+                data: [45, 30, 15, 10],
+                backgroundColor: ['#ff3fab', '#f1c40f', '#00d2ff', '#9b59b6'],
+                hoverOffset: 20,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#94a3b8', font: { family: 'Outfit', size: 12 } } }
+            }
+        }
+    });
 }
 
-/* Glass Cards */
-.glass-card {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 28px;
-    padding: 35px;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    transition: 0.4s;
+function initHeatmap() {
+    const map = L.map('map-container', { zoomControl: false }).setView([28.6139, 77.2090], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+    const data = [
+        { name: "Anand Vihar", lat: 28.6469, lng: 77.3160, aqi: 450, color: "#ff3fab" },
+        { name: "Connaught Place", lat: 28.6304, lng: 77.2177, aqi: 310, color: "#00d2ff" }
+    ];
+
+    data.forEach(city => {
+        L.circleMarker([city.lat, city.lng], {
+            radius: 20, fillColor: city.color, color: "#fff", weight: 2, fillOpacity: 0.6
+        }).addTo(map).on('click', () => {
+            const info = document.getElementById('city-info');
+            info.style.display = 'block';
+            document.getElementById('info-city').innerText = city.name;
+            document.getElementById('info-aqi').innerText = city.aqi;
+            document.getElementById('info-aqi').style.color = city.color;
+            info.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
 }
 
-.glass-card:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-8px);
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+function initEvMap() {
+    const map = L.map('ev-map', { zoomControl: false }).setView([28.55, 77.25], 12);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
 }
 
-/* AQI Circle */
-.aqi-circle {
-    position: relative;
-    width: 320px;
-    height: 320px;
-    margin: 40px 0;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #000;
-    border: 2px solid rgba(255, 63, 171, 0.3);
-}
-
-.aqi-inner {
-    z-index: 2;
-    text-align: center;
-}
-
-.aqi-number {
-    display: block;
-    font-size: 6rem;
-    font-weight: 800;
-    font-family: 'Space Grotesk';
-    line-height: 1;
-}
-
-.aqi-glow {
-    position: absolute;
-    top: -10px; left: -10px; right: -10px; bottom: -10px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, var(--accent-secondary), transparent 70%);
-    animation: rotate 4s linear infinite;
-    filter: blur(15px);
-    opacity: 0.4;
-}
-
-@keyframes rotate { 100% { transform: rotate(360deg); } }
-
-/* Grid & Layouts */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 30px;
-    width: 100%;
-    margin-top: 60px;
-}
-
-.cause-list { list-style: none; }
-.cause-list li {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.cause-list i {
-    font-size: 1.2rem;
-    width: 30px;
-    color: var(--accent-blue);
-}
-
-/* Maps */
-.map-frame {
-    width: 100%;
-    height: 65vh;
-    border-radius: 32px;
-    border: 1px solid var(--glass-border);
-    overflow: hidden;
-    filter: grayscale(0.5) contrast(1.2);
-}
-
-/* Buttons */
-.action-btn {
-    background: var(--text-white);
-    color: var(--bg-black);
-    border: none;
-    padding: 14px 32px;
-    border-radius: 50px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: 0.3s;
-    font-family: 'Space Grotesk';
-}
-
-.action-btn:hover {
-    background: var(--accent-primary);
-    box-shadow: 0 0 20px var(--accent-primary);
-    transform: scale(1.05);
-}
-
-/* GRAP List */
-.grap-list { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 20px; }
-.grap-item {
-    background: rgba(255,255,255,0.03);
-    border-radius: 20px;
-    padding: 25px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: 0.3s;
-}
-.grap-item:hover { background: rgba(255,255,255,0.07); border-color: var(--accent-secondary); }
-.grap-header { display: flex; justify-content: space-between; font-weight: 600; font-size: 1.2rem; }
-.grap-content { display: none; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 20px; }
-
-/* Statuses */
-.danger-text { color: var(--accent-secondary); }
-.warning-text { color: var(--accent-yellow); }
-.status-indicator { letter-spacing: 5px; font-weight: 300; margin-top: 10px; color: var(--accent-secondary); }
+window.onload = init;
