@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VayuVision | Climate Data Hackathon 2026</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <canvas id="particleCanvas"></canvas>
+
+    <nav>
+        <a href="#home" onclick="setActive(this)" class="active"><i class="fas fa-home"></i> <span>Home</span></a>
+        <a href="#maps" onclick="setActive(this)"><i class="fas fa-map-marked-alt"></i> <span>Zones</span></a>
+        <a href="#rules" onclick="setActive(this)"><i class="fas fa-gavel"></i> <span>GRAP</span></a>
+        <a href="#ev" onclick="setActive(this)"><i class="fas fa-bolt"></i> <span>EV Grid</span></a>
+    </nav>
+
+    <section id="home">
+        <div id="location-box" class="location-badge">
+            <i class="fas fa-satellite-dish"></i> Detecting Location...
+        </div>
+
+        <div class="aqi-circle">
+            <div class="aqi-inner">
+                <span class="aqi-number" id="main-aqi">--</span>
+                <span class="aqi-label">AQI (PM 2.5)</span>
+            </div>
+            <div class="aqi-glow"></div>
+        </div>
+        
+        <h3 id="aqi-text" class="status-indicator">ANALYZING AIR...</h3>
+
+        <div class="btn-group">
+            <button class="action-btn" onclick="scrollToId('causes')">Causes</button>
+            <button class="action-btn" onclick="scrollToId('precautions')">Precautions</button>
+            <button class="action-btn" onclick="scrollToId('composition')">Composition</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="glass-card" id="composition">
+                <h4><i class="fas fa-chart-pie"></i> Pollutant Mix</h4>
+                <div class="chart-container">
+                    <canvas id="pollutantChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-card" id="causes">
+                <h4 style="color: var(--neon-yellow);"><i class="fas fa-exclamation-triangle"></i> Primary Causes</h4>
+                <ul class="cause-list">
+                    <li><i class="fas fa-car-side"></i> <span><strong>Vehicular Emissions</strong> (41%)</span></li>
+                    <li><i class="fas fa-trowel-bricks"></i> <span><strong>Construction Dust</strong> (21%)</span></li>
+                    <li><i class="fas fa-industry"></i> <span><strong>Industrial Waste</strong> (18%)</span></li>
+                    <li><i class="fas fa-fire"></i> <span><strong>Farm Fires</strong> (15%)</span></li>
+                </ul>
+            </div>
+
+            <div class="glass-card" id="precautions">
+                <h4 style="color: var(--neon-green);"><i class="fas fa-shield-virus"></i> Safety Protocol</h4>
+                <ul class="cause-list">
+                    <li><i class="fas fa-mask"></i> <span>Wear <strong>N95 Masks</strong> outdoors</span></li>
+                    <li><i class="fas fa-window-close"></i> <span>Keep windows closed post 5 PM</span></li>
+                    <li><i class="fas fa-running"></i> <span>Avoid outdoor cardio</span></li>
+                    <li><i class="fas fa-leaf"></i> <span>Use HEPA Air Purifiers</span></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="maps">
+        <h2 class="section-title">Delhi NCR Heatmap</h2>
+        <div id="map-container" class="map-frame"></div>
+        
+        <div id="city-info" class="glass-card info-panel">
+            <div class="info-header">
+                <div>
+                    <h3 id="info-city">City Name</h3>
+                    <p class="muted">Live Sensor Data</p>
+                </div>
+                <div class="info-stat">
+                    <div id="info-aqi">300</div>
+                    <div class="label">AQI</div>
+                </div>
+            </div>
+            <div class="info-footer">
+                <span><i class="fas fa-thermometer-half"></i> <span id="info-temp">--</span></span>
+                <span><i class="fas fa-wind"></i> <span id="info-wind">--</span></span>
+            </div>
+        </div>
+    </section>
+
+    <section id="rules">
+        <h2 class="section-title">GRAP Protocols</h2>
+        
+        <div class="stat-bar">
+            <div class="stat-item">
+                <span class="label">CURRENT STAGE</span>
+                <strong class="value highlight">STAGE III (SEVERE)</strong>
+            </div>
+            <div class="stat-item right">
+                <span class="label">ACTIVE FINES</span>
+                <strong class="value">INR 20,000+</strong>
+            </div>
+        </div>
+
+        <div class="grap-list">
+            <div class="grap-item" onclick="toggleGrap(this)">
+                <div class="grap-header">
+                    <span><i class="fas fa-ban"></i> Vehicle Bans (BS-III/BS-IV)</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="grap-content">
+                    Restriction on plying of BS-III Petrol and BS-IV Diesel LMVs (4-wheelers) in Delhi-NCR. 
+                    <br><br><strong class="danger-text">Fine: INR 20,000 (Motor Vehicles Act)</strong>
+                </div>
+            </div>
+
+            <div class="grap-item" onclick="toggleGrap(this)">
+                <div class="grap-header">
+                    <span><i class="fas fa-hard-hat"></i> Construction Halts</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="grap-content">
+                    Strict ban on construction and demolition activities. Includes boring, drilling, and excavation.
+                    <br><br><strong class="warning-text">Exemptions: Metro, Railway, Defense projects.</strong>
+                </div>
+            </div>
+
+            <div class="grap-item" onclick="toggleGrap(this)">
+                <div class="grap-header">
+                    <span><i class="fas fa-smog"></i> Industrial Restrictions</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="grap-content">
+                    Industries not running on cleaner fuels (PNG) must close operations immediately until further notice.
+                </div>
+            </div>
+            
+            <div class="action-area">
+                <button class="action-btn outline" onclick="alert('Redirecting...')">Download Full Guidelines PDF</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="ev">
+        <h2 class="section-title">EV Charging Grid</h2>
+        <p class="subtitle">Satellite View | Real-time Availability</p>
+        <div id="ev-map" class="map-frame"></div>
+    </section>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
